@@ -22,7 +22,14 @@ const AppState = (() => {
     function load() {
         try {
             const raw = localStorage.getItem(STATE_KEY);
-            if (raw) Object.assign(this, { state: JSON.parse(raw) });
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                state = defaultState(); // get full structure
+                // deeply merge existing properties to avoid missing keys
+                Object.keys(parsed).forEach(k => {
+                    if (parsed[k] !== undefined) state[k] = parsed[k];
+                });
+            }
             else state = defaultState();
         } catch (e) {
             state = defaultState();
