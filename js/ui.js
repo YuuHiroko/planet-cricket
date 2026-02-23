@@ -590,8 +590,11 @@ function renderStats() {
 
 /* ── 5. ADMIN ───────────────────────────────────────── */
 function renderAdmin() {
-  const { bracket } = AppState.get();
+  const { bracket, githubToken, githubSyncLast } = AppState.get();
   const dMatches = Object.values(bracket).filter(m => m.status === 'done');
+
+  // get matches that are ready (teams determined but not started or done)
+  const rMatches = Object.values(bracket).filter(m => m.team1 && m.team2 && m.status !== 'done');
   const box = document.getElementById('admin-inner');
 
   box.innerHTML = `
@@ -619,12 +622,106 @@ function renderAdmin() {
         <button class="btn btn-ghost w-full" style="color:var(--orange);border-color:var(--orange)" onclick="resetMatchAdm()">🔄 Reset Match Status to TBD</button>
       </div>
     </div>
+    <div class="card mb-2">
+      <div class="text-sm fw-800 mb-1">QUICK ADVANCE</div>
+      <div class="text-xs text-muted mb-2">Instantly declare a winner to skip a match.</div>
+      <div class="form-group">
+        <label class="form-label">Select Ready Match</label>
+        <select class="form-input" id="adm-qw-match" onchange="loadQwForm()">
+          <option value="">-- Choose Match --</option>
+          ${rMatches.map(m => `<option value="${m.id}">${m.label} (${TEAMS[m.team1].name} vs ${TEAMS[m.team2].name})</option>`).join('')}
+        </select>
+      </div>
+      <div id="qw-form" class="hidden">
+        <div class="form-group mt-1">
+          <label class="form-label">Select Winner</label>
+          <select class="form-input" id="adm-qw-winner"></select>
+        </div>
+        <button class="btn btn-primary w-full mt-1 mb-1" onclick="exeQuickWin()">👑 Declare Winner</button>
+      </div>
+    </div>
+
+    <div class="card mb-2">
+      <div class="text-sm fw-800 mb-1">GITHUB CLOUD SYNC</div>
+      <div class="text-xs text-muted mb-2">Save your tournament data to YuuHiroko/planet-cricket repo online.</div>
+      <div class="form-group">
+        <label class="form-label">Personal Access Token (Saved locally)</label>
+        <input type="password" id="gh-token" class="form-input" placeholder="ghp_xxx..." value="${githubToken || ''}">
+      </div>
+      ${githubSyncLast ? `<div class="text-xs text-muted text-center mb-1">Last synced: ${new Date(githubSyncLast).toLocaleString()}</div>` : ''}
+      <div class="flex gap-1 mt-1">
+        <button class="btn btn-primary flex-1" onclick="pushCloud()">☁️ Push Save</button>
+        <button class="btn btn-ghost flex-1" onclick="pullCloud()">⬇️ Pull Save</button>
+      </div>
+    </div>
+
     <div class="card text-center">
-      <div class="text-sm fw-800 mb-2">SYSTEM CONTROLS</div>
+      <div class="text-sm fw-800 mb-2">TOURNAMENT CONTROLS</div>
       <button class="btn btn-ghost w-full mb-1" onclick="exp()">💾 Export JSON Backup</button>
-      <button class="btn btn-red w-full" onclick="rst()">⚠️ Hardware Reset Tournament</button>
+      <button class="btn btn-red w-full" onclick="hr()">💣 HARDWARE RESET (Deletes Local & Cloud Save)</button>
     </div>
   `;
+}
+
+function loadQwForm() {
+  const id = document.getElementById('adm-qw-match').value;
+  const form = document.getElementById('qw-form');
+  const sel = document.getElementById('adm-qw-winner');
+  if (!id) { form.classList.add('hidden'); return; }
+
+  const m = AppState.get().bracket[id];
+  sel.innerHTML = `
+      <option value="">-- Select Winner --</option>
+      <option value="${m.team1}">${TEAMS[m.team1].name}</option>
+      <option value="${m.team2}">${TEAMS[m.team2].name}</option>
+    `;
+  form.classList.remove('hidden');
+}
+
+function exeQuickWin() {
+  const mId = document.getElementById('adm-qw-match').value;
+  const wId = document.getElementById('adm-qw-winner').value;
+  if (!mId || !wId) return showToast('Select match and winner', 'err');
+
+  const res = AppState.quickWin(mId, wId);
+  if (res.error) showToast(res.error, 'err');
+  else {
+    showToast('Match skipped. Team advanced!', 'ok');
+    renderAdmin(); renderBracket();
+  }
+}
+
+async function pushCloud() {
+  const t = document.getElementById('gh-token').value.trim();
+  if (!t) return showToast('Provide GitHub Token first', 'err');
+  showToast('Pushing to GitHub...', 'inf');
+  const btn = document.querySelector('button[onclick="pushCloud()"]');
+  const oldHtml = btn.innerHTML; btn.innerHTML = '⏳ Syncing...'; btn.disabled = true;
+
+  const res = await AppState.pushToCloud(t);
+  btn.innerHTML = oldHtml; btn.disabled = false;
+
+  if (res.error) showToast(res.error, 'err');
+  else { showToast('Cloud Save successful!', 'ok'); renderAdmin(); }
+}
+
+async function pullCloud() {
+  const t = document.getElementById('gh-token').value.trim();
+  if (!t) return showToast('Provide GitHub Token first', 'err');
+  if (!confirm('This will OVERWRITE your current local tournament with the cloud version. Proceed?')) return;
+
+  showToast('Pulling from GitHub...', 'inf');
+  const btn = document.querySelector('button[onclick="pullCloud()"]');
+  const oldHtml = btn.innerHTML; btn.innerHTML = '⏳ Pulling...'; btn.disabled = true;
+
+  const res = await AppState.pullFromCloud(t);
+  btn.innerHTML = oldHtml; btn.disabled = false;
+
+  if (res.error) showToast(res.error, 'err');
+  else {
+    showToast('Tournament state restored from Cloud!', 'ok');
+    location.reload();
+  }
 }
 
 function loadAdmForm() {
@@ -669,9 +766,10 @@ function exp() {
   const blob = new Blob([JSON.stringify(AppState.get(), null, 2)], { type: 'application/json' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'mpcn_data.json'; a.click();
 }
-function rst() {
-  if (confirm('Wipe everything? All match progress will be lost.')) {
-    AppState.reset(); renderCurrentPage('page-admin'); showToast('Wiped clean.', 'inf');
+function hr() {
+  if (confirm('💣 DETONATE TOURNAMENT!? This deletes everything on your device AND GitHub. Cannot be undone.')) {
+    AppState.hardReset();
+    renderCurrentPage('page-admin'); showToast('Wiped clean.', 'inf');
   }
 }
 

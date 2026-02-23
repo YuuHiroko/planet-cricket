@@ -14,6 +14,8 @@ const AppState = (() => {
             players: buildPlayers(),
             scorer: null,      // active scoring session
             champion: null,    // team id of champion
+            githubToken: '',     // user token for saving to GH
+            githubSyncLast: null
         };
     }
 
@@ -105,6 +107,21 @@ const AppState = (() => {
             return { ok: true };
         }
         return { error: 'Match not found' };
+    }
+
+    function quickWin(matchId, winnerId) {
+        const match = state.bracket[matchId];
+        if (!match) return { error: 'Match not found' };
+        if (!match.team1 || !match.team2) return { error: 'Teams not yet determined.' };
+        if (winnerId !== match.team1 && winnerId !== match.team2) return { error: 'Invalid winner ID' };
+
+        match.winner = winnerId;
+        match.loser = winnerId === match.team1 ? match.team2 : match.team1;
+        match.status = 'done';
+
+        // For quick win, we don't have scores/overs, so use defaults or nulls
+        completeMatch(matchId, winnerId, match.loser, null, null, null, null);
+        return { ok: true };
     }
 
     function adminEditMatch(matchId, score1, score2, overs1, overs2) {
@@ -246,9 +263,85 @@ const AppState = (() => {
         if (state.scorer) { state.scorer.bowler = playerId; save(); }
     }
 
+    /* ── CLOUD SYNC ─────────────────────────────────── */
+    async function getGitHubSaveSha(token) {
+        const repo = 'YuuHiroko/planet-cricket';
+        const url = `https://api.github.com/repos/${repo}/contents/save.json`;
+        try {
+            const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (res.status === 200) {
+                const data = await res.json();
+                return { sha: data.sha, content: data.content };
+            }
+        } catch (e) { console.error('GitHub Get Error:', e); }
+        return { sha: null, content: null };
+    }
+
+    async function pushToCloud(token) {
+        const repo = 'YuuHiroko/planet-cricket';
+        const url = `https://api.github.com/repos/${repo}/contents/save.json`;
+        const { sha } = await getGitHubSaveSha(token);
+        const encodedContent = btoa(unescape(encodeURIComponent(JSON.stringify(state, null, 2))));
+
+        const body = {
+            message: "Auto-save tournament state via web app",
+            content: encodedContent
+        };
+        if (sha) body.sha = sha;
+
+        try {
+            const res = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(body)
+            });
+            if (res.status === 200 || res.status === 201) {
+                state.githubToken = token;
+                state.githubSyncLast = Date.now();
+                save();
+                return { ok: true };
+            }
+            return { error: `GitHub API Error: ${res.status}` };
+        } catch (e) { return { error: e.message }; }
+    }
+
+    async function pullFromCloud(token) {
+        const { content } = await getGitHubSaveSha(token);
+        if (!content) return { error: 'No save.json file found on repository.' };
+        try {
+            const decodedStr = decodeURIComponent(escape(atob(content)));
+            const cloudState = JSON.parse(decodedStr);
+            state = cloudState;
+            state.githubToken = token; // ensure token is saved locally
+            save();
+            return { ok: true };
+        } catch (e) { return { error: 'Failed to parse cloud data.' }; }
+    }
+
+    async function deleteCloudSave(token) {
+        if (!token) return;
+        const repo = 'YuuHiroko/planet-cricket';
+        const url = `https://api.github.com/repos/${repo}/contents/save.json`;
+        const { sha } = await getGitHubSaveSha(token);
+        if (!sha) return; // already deleted
+
+        try {
+            await fetch(url, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ message: 'Hardware reset: deleting save file', sha })
+            });
+        } catch (e) { console.error('Failed to delete cloud save', e); }
+    }
+
     return {
         load, save, get, reset, updatePlayer, completeMatch, adminEditMatch, resetMatch, setToss,
+        quickWin,
         startScorer, getScorerState, applyDelivery, finishInnings,
-        setBowler, findPlayer
+        setBowler, findPlayer,
+        pushToCloud, pullFromCloud, deleteCloudSave
     };
 })();
