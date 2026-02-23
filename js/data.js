@@ -4,7 +4,7 @@
 'use strict';
 
 const TEAMS = {
-    A: { id: 'A', name: 'Jupiter Princes', planet: 'Jupiter', icon: 'https://upload.wikimedia.org/wikipedia/commons/e/e2/Jupiter.jpg', color: '#FFD700', points: 0, nrr: 0 },
+    A: { id: 'A', name: 'Jupiter Primes', planet: 'Jupiter', icon: 'https://upload.wikimedia.org/wikipedia/commons/e/e2/Jupiter.jpg', color: '#FFD700', points: 0, nrr: 0 },
     B: { id: 'B', name: 'Venus Vertex', planet: 'Venus', icon: 'https://upload.wikimedia.org/wikipedia/commons/e/e5/Venus-real_color.jpg', color: '#FF69B4', points: 0, nrr: 0 },
     C: { id: 'C', name: 'Earth Guardians', planet: 'Earth', icon: 'https://upload.wikimedia.org/wikipedia/commons/9/97/The_Earth_seen_from_Apollo_17.jpg', color: '#1E90FF', points: 0, nrr: 0 },
     D: { id: 'D', name: 'Pluto Phantoms', planet: 'Pluto', icon: 'https://upload.wikimedia.org/wikipedia/commons/e/ef/Pluto_in_True_Color_-_High-Res.jpg', color: '#32CD32', points: 0, nrr: 0 },
