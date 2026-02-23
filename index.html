@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#07080F">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>MPCN Cricket Tournament</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+  <div id="stars-bg"></div>
+  <canvas id="confetti-canvas"></canvas>
+  <div id="toast-root"></div>
+
+  <!-- TOP BAR -->
+  <header id="topbar">
+    <div class="topbar-logo">MPCN CRICKET</div>
+    <div class="topbar-right">
+      <div class="topbar-badge">LIVE</div>
+    </div>
+  </header>
+
+  <!-- PAGES -->
+  <main id="page-bracket" class="page active">
+    <div id="bracket-inner" style="margin-top: 1rem;"></div>
+  </main>
+
+  <main id="page-scorer" class="page">
+    <div id="scorer-inner"></div>
+  </main>
+
+  <main id="page-players" class="page">
+    <div class="sec-title text-center mt-1">Team Rosters</div>
+    <div class="sec-sub text-center">Edit playing 11 for all teams before the toss.</div>
+    <div id="players-inner"></div>
+  </main>
+
+  <main id="page-stats" class="page">
+    <div class="sec-title text-center mt-1">Tournament Stats</div>
+    <div class="sec-sub text-center">Most Runs & Most Wickets across all matches.</div>
+    <div class="card" style="padding:0.5rem 0">
+      <div id="stats-inner"></div>
+    </div>
+  </main>
+
+  <main id="page-admin" class="page">
+    <div class="sec-title text-center mt-1">Tournament Admin</div>
+    <div id="admin-inner"></div>
+  </main>
+
+  <!-- BOTTOM NAVIGATION -->
+  <nav id="bottom-tabs">
+    <button class="tab-btn active" data-page="page-bracket">
+      <div class="tab-icon">🏆</div><span>Matches</span>
+    </button>
+    <button class="tab-btn" data-page="page-scorer">
+      <div class="tab-icon">🏏</div><span>Scorer</span>
+    </button>
+    <button class="tab-btn" data-page="page-players">
+      <div class="tab-icon">👥</div><span>Players</span>
+    </button>
+    <button class="tab-btn" data-page="page-stats">
+      <div class="tab-icon">📊</div><span>Stats</span>
+    </button>
+    <button class="tab-btn" data-page="page-admin">
+      <div class="tab-icon">⚙️</div><span>Admin</span>
+    </button>
+  </nav>
+
+  <!-- MODALS / BOTTOM SHEETS -->
+  <div class="overlay" id="sheet-match">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title text-center" id="sheet-match-title"></div>
+      <div id="sheet-match-body"></div>
+    </div>
+  </div>
+
+
+
+  <div class="overlay" id="sheet-toss">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title text-center" id="sheet-toss-title">Toss Result</div>
+      <div id="sheet-toss-body"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="sheet-wicket">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title text-center">How was the batter out?</div>
+      <div class="wicket-grid mb-2">
+        <button class="wicket-btn" onclick="selWkt('Bowled')">🎳 Bowled</button>
+        <button class="wicket-btn" onclick="selWkt('Caught')">🤲 Caught</button>
+        <button class="wicket-btn" onclick="selWkt('LBW')">🦵 LBW</button>
+        <button class="wicket-btn" onclick="selWkt('Run Out')">🏃 Run Out</button>
+        <button class="wicket-btn" onclick="selWkt('Stumped')">🧤 Stumped</button>
+        <button class="wicket-btn" onclick="selWkt('Hit Wicket')">💥 Hit Wicket</button>
+      </div>
+      <button class="btn btn-ghost w-full" onclick="closeSheet('sheet-wicket')">Cancel</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="sheet-runout">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title text-center">Run Out</div>
+      <div id="sheet-runout-body"></div>
+      <button class="btn btn-ghost w-full" onclick="closeSheet('sheet-runout')">Cancel</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="sheet-bowler">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title text-center">Select Bowler</div>
+      <div id="sheet-bowler-body"></div>
+    </div>
+  </div>
+
+  <div class="overlay overlay-center" id="modal-champ">
+    <div class="modal-box">
+      <div id="champ-icon" style="font-size:4rem;margin-bottom:0.5rem"></div>
+      <div class="fw-900 text-sm text-muted mb-1" style="font-family:'Orbitron',monospace">TOURNAMENT WINNER</div>
+      <div id="champ-name" style="font-size:1.5rem;font-weight:900;margin-bottom:1.5rem"></div>
+      <button class="btn btn-primary w-full btn-lg" onclick="closeSheet('modal-champ')">Celebrate 🎉</button>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      AppState.load();
+      initStars(); initNav();
+      renderBracket(); renderPlayersSetup(); renderStats(); renderAdmin();
+      // Close overlays on bg click
+      document.querySelectorAll('.overlay').forEach(el => {
+        el.addEventListener('click', e => { if (e.target === el) closeSheet(el.id); });
+      });
+    });
+  </script>
+</body>
+
+</html>
