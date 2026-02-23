@@ -588,14 +588,59 @@ function renderStats() {
   `;
 }
 
+let _adminUnlocked = false;
+
+function unlockAdmin() {
+  const pin = document.getElementById('admin-pin').value;
+  if (pin === '2579') {
+    _adminUnlocked = true;
+    renderAdmin();
+  } else {
+    showToast('Incorrect PIN', 'err');
+  }
+}
+
+function impJson(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data && data.bracket && data.players) {
+        AppState.importState(data);
+        showToast('Tournament data imported!', 'ok');
+        location.reload();
+      } else {
+        showToast('Invalid data format', 'err');
+      }
+    } catch (err) {
+      showToast('Error parsing file', 'err');
+    }
+  };
+  reader.readAsText(file);
+}
+
 /* ── 5. ADMIN ───────────────────────────────────────── */
 function renderAdmin() {
+  const box = document.getElementById('admin-inner');
+
+  if (!_adminUnlocked) {
+    box.innerHTML = `
+      <div class="card text-center" style="margin-top:2rem;padding:2rem 1rem">
+        <div class="text-sm fw-800 mb-2">ADMIN PIN REQUIRED</div>
+        <input type="password" id="admin-pin" class="form-input text-center mb-1" placeholder="Enter PIN" style="font-size:1.5rem;letter-spacing:0.5rem">
+        <button class="btn btn-primary w-full btn-lg" onclick="unlockAdmin()">Unlock 🔓</button>
+      </div>
+    `;
+    return;
+  }
+
   const { bracket, githubToken, githubSyncLast } = AppState.get();
   const dMatches = Object.values(bracket).filter(m => m.status === 'done');
 
   // get matches that are ready (teams determined but not started or done)
   const rMatches = Object.values(bracket).filter(m => m.team1 && m.team2 && m.status !== 'done');
-  const box = document.getElementById('admin-inner');
 
   box.innerHTML = `
     <div class="card mb-2">
@@ -644,10 +689,13 @@ function renderAdmin() {
     <div class="card mb-2">
       <div class="text-sm fw-800 mb-1">GITHUB CLOUD SYNC</div>
       <div class="text-xs text-muted mb-2">Save your tournament data to YuuHiroko/planet-cricket repo online.</div>
-      <div class="form-group">
-        <label class="form-label">Personal Access Token (Saved locally)</label>
-        <input type="password" id="gh-token" class="form-input" placeholder="ghp_xxx..." value="${githubToken || ''}">
-      </div>
+      <details class="mb-1 text-xs text-muted text-left">
+        <summary style="cursor:pointer">Show Token Settings</summary>
+        <div class="form-group mt-1">
+          <label class="form-label">Personal Access Token (Saved locally)</label>
+          <input type="password" id="gh-token" class="form-input" placeholder="ghp_xxx..." value="${githubToken || ''}">
+        </div>
+      </details>
       ${githubSyncLast ? `<div class="text-xs text-muted text-center mb-1">Last synced: ${new Date(githubSyncLast).toLocaleString()}</div>` : ''}
       <div class="flex gap-1 mt-1">
         <button class="btn btn-primary flex-1" onclick="pushCloud()">☁️ Push Save</button>
@@ -657,7 +705,13 @@ function renderAdmin() {
 
     <div class="card text-center">
       <div class="text-sm fw-800 mb-2">TOURNAMENT CONTROLS</div>
-      <button class="btn btn-ghost w-full mb-1" onclick="exp()">💾 Export JSON Backup</button>
+      <div class="flex gap-1 mb-1">
+        <button class="btn btn-ghost flex-1" onclick="exp()">💾 Export Backup</button>
+        <label class="btn btn-ghost flex-1" style="cursor:pointer;display:flex;align-items:center;justify-content:center">
+          <input type="file" accept=".json" style="display:none" onchange="impJson(this)">
+          📥 Import JSON
+        </label>
+      </div>
       <button class="btn btn-red w-full" onclick="hr()">💣 HARDWARE RESET (Deletes Local & Cloud Save)</button>
     </div>
   `;

@@ -36,6 +36,15 @@ const AppState = (() => {
         }
     }
 
+    function importState(importedObj) {
+        state = defaultState();
+        Object.keys(importedObj).forEach(k => {
+            if (importedObj[k] !== undefined) state[k] = importedObj[k];
+        });
+        save();
+        return { ok: true };
+    }
+
     function save() {
         try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (_) { }
     }
@@ -367,7 +376,7 @@ const AppState = (() => {
     }
 
     return {
-        load, save, get, reset, hardReset, updatePlayer, completeMatch, adminEditMatch, resetMatch, setToss,
+        load, importState, save, get, reset, hardReset, updatePlayer, completeMatch, adminEditMatch, resetMatch, setToss,
         quickWin,
         startScorer, getScorerState, applyDelivery, finishInnings,
         setBowler, findPlayer,
