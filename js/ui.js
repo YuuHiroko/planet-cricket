@@ -766,9 +766,11 @@ function exp() {
   const blob = new Blob([JSON.stringify(AppState.get(), null, 2)], { type: 'application/json' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'mpcn_data.json'; a.click();
 }
-function hr() {
+async function hr() {
   if (confirm('💣 DETONATE TOURNAMENT!? This deletes everything on your device AND GitHub. Cannot be undone.')) {
-    AppState.hardReset();
+    const btn = document.querySelector('button[onclick="hr()"]');
+    if (btn) { btn.innerHTML = '⏳ Wiping...'; btn.disabled = true; }
+    await AppState.hardReset();
     renderCurrentPage('page-admin'); showToast('Wiped clean.', 'inf');
   }
 }

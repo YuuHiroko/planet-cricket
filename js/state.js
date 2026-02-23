@@ -38,6 +38,15 @@ const AppState = (() => {
         save();
     }
 
+    async function hardReset() {
+        if (state && state.githubToken) {
+            await deleteCloudSave(state.githubToken);
+        }
+        localStorage.removeItem(STATE_KEY);
+        state = defaultState();
+        save();
+    }
+
     function get() { return state; }
 
     // ── Player Management ───────────────────────────
@@ -113,14 +122,13 @@ const AppState = (() => {
         const match = state.bracket[matchId];
         if (!match) return { error: 'Match not found' };
         if (!match.team1 || !match.team2) return { error: 'Teams not yet determined.' };
+        if (match.status === 'done') return { error: 'Match already done.' };
         if (winnerId !== match.team1 && winnerId !== match.team2) return { error: 'Invalid winner ID' };
 
-        match.winner = winnerId;
-        match.loser = winnerId === match.team1 ? match.team2 : match.team1;
-        match.status = 'done';
+        const loserId = winnerId === match.team1 ? match.team2 : match.team1;
 
-        // For quick win, we don't have scores/overs, so use defaults or nulls
-        completeMatch(matchId, winnerId, match.loser, null, null, null, null);
+        // Propagate correctly using completeMatch
+        completeMatch(matchId, winnerId, loserId, null, null, null, null);
         return { ok: true };
     }
 
@@ -131,8 +139,22 @@ const AppState = (() => {
 
         match.score1 = score1; match.score2 = score2;
         match.overs1 = overs1; match.overs2 = overs2;
-        match.winner = score1 > score2 ? match.team1 : match.team2;
-        match.loser = match.winner === match.team1 ? match.team2 : match.team1;
+        const newWinner = score1 > score2 ? match.team1 : match.team2;
+        const newLoser = newWinner === match.team1 ? match.team2 : match.team1;
+
+        if (match.winner !== newWinner) {
+            match.winner = newWinner;
+            match.loser = newLoser;
+            // Propagate bracket downstream manually since we bypass completeMatch
+            const rules = BRACKET_RULES[matchId] || [];
+            for (const rule of rules) {
+                const destMatch = state.bracket[rule.dest];
+                if (destMatch) {
+                    destMatch[rule.slot] = rule.result === 'winner' ? newWinner : newLoser;
+                }
+            }
+            if (matchId === 'FIN') state.champion = newWinner;
+        }
 
         save();
         return { ok: true };
@@ -338,7 +360,7 @@ const AppState = (() => {
     }
 
     return {
-        load, save, get, reset, updatePlayer, completeMatch, adminEditMatch, resetMatch, setToss,
+        load, save, get, reset, hardReset, updatePlayer, completeMatch, adminEditMatch, resetMatch, setToss,
         quickWin,
         startScorer, getScorerState, applyDelivery, finishInnings,
         setBowler, findPlayer,
