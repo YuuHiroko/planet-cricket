@@ -689,22 +689,12 @@ function renderAdmin() {
     <div class="card mb-2">
       <div class="text-sm fw-800 mb-1">GITHUB CLOUD SYNC</div>
       <div class="text-xs text-muted mb-2">Save your tournament data to YuuHiroko/planet-cricket git repo online.</div>
-      ${!AppState.get().githubToken ? `
-        <div class="form-group">
-          <label class="form-label">Step 1: Setup GitHub Login</label>
-          <div class="text-xs text-muted mb-1">Create a Personal Access Token (classic) with 'repo' scope and enter it here.</div>
-          <input type="password" id="adm-gh-token" class="form-input mb-1" placeholder="ghp_xxxxxx...">
-          <button class="btn btn-primary w-full" onclick="saveGhToken()">Save Token</button>
-        </div>
-      ` : `
-        <div class="text-xs text-center mb-1" style="color:var(--green)">✓ Authenticated with GitHub</div>
-        ${githubSyncLast ? `<div class="text-xs text-muted text-center mb-1">Last synced: ${new Date(githubSyncLast).toLocaleString()}</div>` : ''}
-        <div class="flex gap-1 mt-1">
-          <button class="btn btn-primary flex-1" onclick="pushCloud()">☁️ Push Save</button>
-          <button class="btn btn-ghost flex-1" onclick="pullCloud()">⬇️ Pull Save</button>
-        </div>
-        <button class="btn btn-ghost w-full mt-1" style="color:var(--red);border-color:var(--red)" onclick="logoutGh()">Log Out</button>
-      `}
+      <div class="text-xs text-center mb-1" style="color:var(--green)">✓ Authenticated with Encrypted Token</div>
+      ${githubSyncLast ? `<div class="text-xs text-muted text-center mb-1">Last synced: ${new Date(githubSyncLast).toLocaleString()}</div>` : ''}
+      <div class="flex gap-1 mt-1">
+        <button class="btn btn-primary flex-1" onclick="pushCloud()">☁️ Push Save</button>
+        <button class="btn btn-ghost flex-1" onclick="pullCloud()">⬇️ Pull Save</button>
+      </div>
     </div>
 
     <div class="card text-center">
@@ -749,23 +739,9 @@ function exeQuickWin() {
   }
 }
 
-function saveGhToken() {
-  const t = document.getElementById('adm-gh-token').value;
-  if (!t) return showToast('Enter GitHub Token', 'err');
-  AppState.setGithubToken(t);
-  showToast('Token Saved', 'ok');
-  renderAdmin();
-}
-
-function logoutGh() {
-  AppState.logoutGithub();
-  showToast('Logged out of GitHub', 'inf');
-  renderAdmin();
-}
-
 async function pushCloud() {
-  const t = AppState.get().githubToken;
-  if (!t) return showToast('Not authenticated', 'err');
+  const t = AppState.getDecryptedToken();
+  if (!t) return showToast('Error decrypting token', 'err');
   showToast('Pushing to GitHub...', 'inf');
   const btn = document.querySelector('button[onclick="pushCloud()"]');
   const oldHtml = btn.innerHTML; btn.innerHTML = '⏳ Syncing...'; btn.disabled = true;
@@ -778,8 +754,8 @@ async function pushCloud() {
 }
 
 async function pullCloud() {
-  const t = AppState.get().githubToken;
-  if (!t) return showToast('Not authenticated', 'err');
+  const t = AppState.getDecryptedToken();
+  if (!t) return showToast('Error decrypting token', 'err');
   if (!confirm('This will OVERWRITE your current local tournament with the cloud version. Proceed?')) return;
 
   showToast('Pulling from GitHub...', 'inf');

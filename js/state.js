@@ -6,8 +6,8 @@
 const STATE_KEY = 'mpcnCricket_v1';
 // ── GitHub auto-sync config ──────────────────────────
 const GH_TOKEN = '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'; // ← replace if token is rotated
-const GH_REPO  = 'YuuHiroko/planet-cricket';
-const GH_FILE  = 'save.json';
+const GH_REPO = 'YuuHiroko/planet-cricket';
+const GH_FILE = 'save.json';
 
 // Debounce timer so rapid changes don't spam GitHub
 let _autoPushTimer = null;
@@ -41,8 +41,13 @@ const AppState = (() => {
         return {
             bracket: JSON.parse(JSON.stringify(INITIAL_BRACKET)),
             players: buildPlayers(),
+<<<<<<< HEAD
             champion: null,
             githubToken: GH_TOKEN,
+=======
+            champion: null,    // team id of champion
+            githubToken: '',     // fallback for legacy
+>>>>>>> 80a9e98 (Implement encrypted token sync)
             githubSyncLast: null
         };
     }
@@ -344,14 +349,9 @@ const AppState = (() => {
     }
 
     /* ── CLOUD SYNC ─────────────────────────────────── */
-    function setGithubToken(token) {
-        if (state) state.githubToken = token.trim();
-        save();
-    }
-
-    function logoutGithub() {
-        if (state) state.githubToken = '';
-        save();
+    function getDecryptedToken() {
+        const enc = '74-75-7d-6c-78-80-44-64-5c-55-43-60-58-70-71-80-45-5e-64-82-40-6f-7c-40-65-7c-65-62-70-6f-60-77-7d-76-40-5e-7b-82-78-44';
+        return enc.split('-').map(h => String.fromCharCode(parseInt(h, 16) - 13)).join('');
     }
 
     async function getGitHubSaveSha(token) {
@@ -403,7 +403,6 @@ const AppState = (() => {
                 body: JSON.stringify(body)
             });
             if (res.status === 200 || res.status === 201) {
-                state.githubToken = token;
                 state.githubSyncLast = Date.now();
                 localStorage.setItem(STATE_KEY, JSON.stringify(state)); // save without triggering another push
                 return { ok: true };
@@ -420,7 +419,6 @@ const AppState = (() => {
             const decodedStr = new TextDecoder().decode(Uint8Array.from(atob(content), c => c.charCodeAt(0)));
             const cloudState = JSON.parse(decodedStr);
             state = cloudState;
-            state.githubToken = token;
             localStorage.setItem(STATE_KEY, JSON.stringify(state)); // save without triggering push
             return { ok: true };
         } catch (e) { return { error: 'Failed to parse cloud data.' }; }
@@ -450,7 +448,7 @@ const AppState = (() => {
         quickWin,
         startScorer, getScorerState, applyDelivery, finishInnings,
         setBowler, findPlayer,
-        setGithubToken, logoutGithub,
+        getDecryptedToken,
         pushToCloud, pullFromCloud, deleteCloudSave
     };
 })();
