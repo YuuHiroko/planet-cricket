@@ -344,6 +344,16 @@ const AppState = (() => {
     }
 
     /* ── CLOUD SYNC ─────────────────────────────────── */
+    function setGithubToken(token) {
+        if (state) state.githubToken = token.trim();
+        save();
+    }
+
+    function logoutGithub() {
+        if (state) state.githubToken = '';
+        save();
+    }
+
     async function getGitHubSaveSha(token) {
         const repo = 'YuuHiroko/planet-cricket';
         const url = `https://api.github.com/repos/${repo}/contents/save.json?t=${Date.now()}`;
@@ -437,6 +447,7 @@ const AppState = (() => {
         quickWin,
         startScorer, getScorerState, applyDelivery, finishInnings,
         setBowler, findPlayer,
+        setGithubToken, logoutGithub,
         pushToCloud, pullFromCloud, deleteCloudSave
     };
 })();
