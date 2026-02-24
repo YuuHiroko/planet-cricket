@@ -304,13 +304,14 @@ const AppState = (() => {
     /* ── CLOUD SYNC ─────────────────────────────────── */
     async function getGitHubSaveSha(token) {
         const repo = 'YuuHiroko/planet-cricket';
-        const url = `https://api.github.com/repos/${repo}/contents/save.json`;
+        const url = `https://api.github.com/repos/${repo}/contents/save.json?t=${Date.now()}`;
         try {
             const res = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/vnd.github+json',
-                    'X-GitHub-Api-Version': '2022-11-28'
+                    'X-GitHub-Api-Version': '2022-11-28',
+                    'Cache-Control': 'no-cache'
                 }
             });
             if (res.status === 200) {
