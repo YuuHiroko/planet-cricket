@@ -688,12 +688,29 @@ function renderAdmin() {
 
     <div class="card mb-2">
       <div class="text-sm fw-800 mb-1">GITHUB CLOUD SYNC</div>
-      <div class="text-xs text-muted mb-2">Save your tournament data to YuuHiroko/planet-cricket repo online.</div>
-      ${githubSyncLast ? `<div class="text-xs text-muted text-center mb-1">Last synced: ${new Date(githubSyncLast).toLocaleString()}</div>` : ''}
-      <div class="flex gap-1 mt-1">
-        <button class="btn btn-primary flex-1" onclick="pushCloud()">☁️ Push Save</button>
-        <button class="btn btn-ghost flex-1" onclick="pullCloud()">⬇️ Pull Save</button>
-      </div>
+      <div class="text-xs text-muted mb-2">Save your tournament data to YuuHiroko/planet-cricket git repo online.</div>
+      ${!AppState.get().githubClientId ? `
+        <div class="form-group">
+          <label class="form-label">Step 1: Setup GitHub Login</label>
+          <div class="text-xs text-muted mb-1">Create an OAuth App on GitHub, enable "Device Flow", and enter its Client ID here.</div>
+          <input type="text" id="adm-gh-client-id" class="form-input mb-1" placeholder="Client ID (e.g. Iv1.xxx)">
+          <button class="btn btn-primary w-full" onclick="saveGhClientId()">Save Client ID</button>
+        </div>
+      ` : (!AppState.get().githubToken ? `
+        <div id="gh-auth-box">
+          <div class="text-xs text-muted text-center mb-1">Client ID configured. Ready to authenticate.</div>
+          <button class="btn btn-primary w-full" id="gh-login-btn" onclick="startGithubLogin()">🔑 Login with GitHub Code</button>
+          <div id="gh-login-status" class="text-xs text-center mt-1 hidden" style="color:var(--yellow)"></div>
+        </div>
+      ` : `
+        <div class="text-xs text-center mb-1" style="color:var(--green)">✓ Authenticated with GitHub</div>
+        ${githubSyncLast ? `<div class="text-xs text-muted text-center mb-1">Last synced: ${new Date(githubSyncLast).toLocaleString()}</div>` : ''}
+        <div class="flex gap-1 mt-1">
+          <button class="btn btn-primary flex-1" onclick="pushCloud()">☁️ Push Save</button>
+          <button class="btn btn-ghost flex-1" onclick="pullCloud()">⬇️ Pull Save</button>
+        </div>
+        <button class="btn btn-ghost w-full mt-1" style="color:var(--red);border-color:var(--red)" onclick="logoutGh()">Log Out</button>
+      `)}
     </div>
 
     <div class="card text-center">
@@ -738,9 +755,70 @@ function exeQuickWin() {
   }
 }
 
+function saveGhClientId() {
+  const cId = document.getElementById('adm-gh-client-id').value;
+  if (!cId) return showToast('Enter Client ID', 'err');
+  AppState.setGithubClientId(cId);
+  showToast('Client ID Saved', 'ok');
+  renderAdmin();
+}
+
+function logoutGh() {
+  AppState.logoutGithub();
+  showToast('Logged out of GitHub', 'inf');
+  renderAdmin();
+}
+
+let _pollInterval = null;
+
+async function startGithubLogin() {
+  const status = document.getElementById('gh-login-status');
+  const btn = document.getElementById('gh-login-btn');
+  btn.disabled = true; btn.innerHTML = '⏳ Requesting...';
+
+  const data = await AppState.requestDeviceCode();
+  if (data.error) {
+    status.classList.remove('hidden'); status.innerHTML = data.error;
+    btn.disabled = false; btn.innerHTML = '🔑 Login with GitHub Code';
+    return;
+  }
+
+  // Show user code and instructions
+  document.getElementById('gh-auth-box').innerHTML = `
+    <div class="text-sm text-center mb-1">Your code: <strong style="font-size:1.2rem;letter-spacing:2px;color:var(--accent2)">${data.user_code}</strong></div>
+    <div class="text-xs text-muted text-center mb-2">Go to <a href="${data.verification_uri}" target="_blank" style="color:var(--accent);text-decoration:underline">github.com/login/device</a> and enter the code above.</div>
+    <div class="text-xs text-center" id="gh-poll-status" style="color:var(--yellow)">Waiting for authorization... ⏳</div>
+    <button class="btn btn-ghost w-full mt-1" onclick="cancelGhLogin()">Cancel</button>
+  `;
+
+  // Poll for token
+  const intervalSeconds = data.interval || 5;
+  if (_pollInterval) clearInterval(_pollInterval);
+
+  _pollInterval = setInterval(async () => {
+    const res = await AppState.pollAccessToken(data.device_code);
+    if (res.status === 'success') {
+      clearInterval(_pollInterval);
+      showToast('Login Successful!', 'ok');
+      renderAdmin();
+    } else if (res.status === 'authorization_pending' || res.status === 'slow_down') {
+      // Keep waiting
+    } else {
+      // Error
+      clearInterval(_pollInterval);
+      document.getElementById('gh-poll-status').innerHTML = '<span style="color:var(--red)">Error: ' + res.status + '</span>';
+    }
+  }, intervalSeconds * 1000);
+}
+
+function cancelGhLogin() {
+  if (_pollInterval) clearInterval(_pollInterval);
+  renderAdmin();
+}
+
 async function pushCloud() {
-  const p1 = 'ghp_1'; const p2 = 'w8ENHL'; const p3 = 'hwzalzF1T'; const p4 = '5pPOlgJX9kkF7S0DSPjO';
-  const t = p1 + p2 + p3 + p4;
+  const t = AppState.get().githubToken;
+  if (!t) return showToast('Not authenticated', 'err');
   showToast('Pushing to GitHub...', 'inf');
   const btn = document.querySelector('button[onclick="pushCloud()"]');
   const oldHtml = btn.innerHTML; btn.innerHTML = '⏳ Syncing...'; btn.disabled = true;
@@ -753,8 +831,8 @@ async function pushCloud() {
 }
 
 async function pullCloud() {
-  const p1 = 'ghp_1'; const p2 = 'w8ENHL'; const p3 = 'hwzalzF1T'; const p4 = '5pPOlgJX9kkF7S0DSPjO';
-  const t = p1 + p2 + p3 + p4;
+  const t = AppState.get().githubToken;
+  if (!t) return showToast('Not authenticated', 'err');
   if (!confirm('This will OVERWRITE your current local tournament with the cloud version. Proceed?')) return;
 
   showToast('Pulling from GitHub...', 'inf');

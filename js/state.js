@@ -15,6 +15,7 @@ const AppState = (() => {
             scorer: null,      // active scoring session
             champion: null,    // team id of champion
             githubToken: '',     // user token for saving to GH
+            githubClientId: '',  // OAuth Client ID
             githubSyncLast: null
         };
     }
@@ -301,7 +302,67 @@ const AppState = (() => {
         if (state.scorer) { state.scorer.bowler = playerId; save(); }
     }
 
-    /* ── CLOUD SYNC ─────────────────────────────────── */
+    /* ── CLOUD SYNC & GITHUB LOGIN ─────────────────────────────────── */
+    function setGithubClientId(clientId) {
+        if (state) state.githubClientId = clientId.trim();
+        save();
+    }
+
+    function logoutGithub() {
+        if (state) state.githubToken = '';
+        save();
+    }
+
+    async function requestDeviceCode() {
+        if (!state.githubClientId) return { error: 'Client ID missing' };
+        try {
+            const res = await fetch('https://corsproxy.io/?https://github.com/login/device/code', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    client_id: state.githubClientId,
+                    scope: 'repo'
+                })
+            });
+            const data = await res.json();
+            if (data.error) return { error: data.error_description || data.error };
+            return data;
+        } catch (e) {
+            return { error: 'Failed to request device code. Check Client ID or network.' };
+        }
+    }
+
+    async function pollAccessToken(deviceCode) {
+        if (!state.githubClientId) return { error: 'Client ID missing' };
+        try {
+            const res = await fetch('https://corsproxy.io/?https://github.com/login/oauth/access_token', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    client_id: state.githubClientId,
+                    device_code: deviceCode,
+                    grant_type: 'urn:ietf:params:oauth:grant-type:device_code'
+                })
+            });
+            const data = await res.json();
+            if (data.error) return { status: data.error };
+            if (data.access_token) {
+                state.githubToken = data.access_token;
+                save();
+                return { status: 'success', token: data.access_token };
+            }
+            return { status: 'unknown' };
+        } catch (e) {
+            return { status: 'error', error: e.message };
+        }
+    }
+
     async function getGitHubSaveSha(token) {
         const repo = 'YuuHiroko/planet-cricket';
         const url = `https://api.github.com/repos/${repo}/contents/save.json?t=${Date.now()}`;
@@ -326,7 +387,10 @@ const AppState = (() => {
         const repo = 'YuuHiroko/planet-cricket';
         const url = `https://api.github.com/repos/${repo}/contents/save.json`;
         const { sha } = await getGitHubSaveSha(token);
-        const encodedContent = btoa(unescape(encodeURIComponent(JSON.stringify(state, null, 2))));
+        // Do not escape stringify directly as btoa expects binary. Use text encoder
+        const utf8Encoder = new TextEncoder();
+        const jsonStr = JSON.stringify(state, null, 2);
+        const encodedContent = btoa(String.fromCharCode.apply(null, Array.from(utf8Encoder.encode(jsonStr))));
 
         const body = {
             message: "Auto-save tournament state via web app",
@@ -359,7 +423,7 @@ const AppState = (() => {
         const { content } = await getGitHubSaveSha(token);
         if (!content) return { error: 'No save.json file found on repository.' };
         try {
-            const decodedStr = decodeURIComponent(escape(atob(content)));
+            const decodedStr = new TextDecoder().decode(Uint8Array.from(atob(content), c => c.charCodeAt(0)));
             const cloudState = JSON.parse(decodedStr);
             state = cloudState;
             state.githubToken = token; // ensure token is saved locally
@@ -393,6 +457,7 @@ const AppState = (() => {
         quickWin,
         startScorer, getScorerState, applyDelivery, finishInnings,
         setBowler, findPlayer,
+        setGithubClientId, logoutGithub, requestDeviceCode, pollAccessToken,
         pushToCloud, pullFromCloud, deleteCloudSave
     };
 })();
