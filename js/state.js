@@ -12,10 +12,8 @@ const AppState = (() => {
         return {
             bracket: JSON.parse(JSON.stringify(INITIAL_BRACKET)),
             players: buildPlayers(),
-            scorer: null,      // active scoring session
             champion: null,    // team id of champion
             githubToken: '',     // user token for saving to GH
-            githubClientId: '',  // OAuth Client ID
             githubSyncLast: null
         };
     }
@@ -302,65 +300,15 @@ const AppState = (() => {
         if (state.scorer) { state.scorer.bowler = playerId; save(); }
     }
 
-    /* ── CLOUD SYNC & GITHUB LOGIN ─────────────────────────────────── */
-    function setGithubClientId(clientId) {
-        if (state) state.githubClientId = clientId.trim();
+    /* ── CLOUD SYNC ─────────────────────────────────── */
+    function setGithubToken(token) {
+        if (state) state.githubToken = token.trim();
         save();
     }
 
     function logoutGithub() {
         if (state) state.githubToken = '';
         save();
-    }
-
-    async function requestDeviceCode() {
-        if (!state.githubClientId) return { error: 'Client ID missing' };
-        try {
-            const res = await fetch('https://corsproxy.io/?https://github.com/login/device/code', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    client_id: state.githubClientId,
-                    scope: 'repo'
-                })
-            });
-            const data = await res.json();
-            if (data.error) return { error: data.error_description || data.error };
-            return data;
-        } catch (e) {
-            return { error: 'Failed to request device code. Check Client ID or network.' };
-        }
-    }
-
-    async function pollAccessToken(deviceCode) {
-        if (!state.githubClientId) return { error: 'Client ID missing' };
-        try {
-            const res = await fetch('https://corsproxy.io/?https://github.com/login/oauth/access_token', {
-                method: 'POST',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    client_id: state.githubClientId,
-                    device_code: deviceCode,
-                    grant_type: 'urn:ietf:params:oauth:grant-type:device_code'
-                })
-            });
-            const data = await res.json();
-            if (data.error) return { status: data.error };
-            if (data.access_token) {
-                state.githubToken = data.access_token;
-                save();
-                return { status: 'success', token: data.access_token };
-            }
-            return { status: 'unknown' };
-        } catch (e) {
-            return { status: 'error', error: e.message };
-        }
     }
 
     async function getGitHubSaveSha(token) {
@@ -457,7 +405,7 @@ const AppState = (() => {
         quickWin,
         startScorer, getScorerState, applyDelivery, finishInnings,
         setBowler, findPlayer,
-        setGithubClientId, logoutGithub, requestDeviceCode, pollAccessToken,
+        setGithubToken, logoutGithub,
         pushToCloud, pullFromCloud, deleteCloudSave
     };
 })();

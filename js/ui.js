@@ -689,18 +689,12 @@ function renderAdmin() {
     <div class="card mb-2">
       <div class="text-sm fw-800 mb-1">GITHUB CLOUD SYNC</div>
       <div class="text-xs text-muted mb-2">Save your tournament data to YuuHiroko/planet-cricket git repo online.</div>
-      ${!AppState.get().githubClientId ? `
+      ${!AppState.get().githubToken ? `
         <div class="form-group">
           <label class="form-label">Step 1: Setup GitHub Login</label>
-          <div class="text-xs text-muted mb-1">Create an OAuth App on GitHub, enable "Device Flow", and enter its Client ID here.</div>
-          <input type="text" id="adm-gh-client-id" class="form-input mb-1" placeholder="Client ID (e.g. Iv1.xxx)">
-          <button class="btn btn-primary w-full" onclick="saveGhClientId()">Save Client ID</button>
-        </div>
-      ` : (!AppState.get().githubToken ? `
-        <div id="gh-auth-box">
-          <div class="text-xs text-muted text-center mb-1">Client ID configured. Ready to authenticate.</div>
-          <button class="btn btn-primary w-full" id="gh-login-btn" onclick="startGithubLogin()">🔑 Login with GitHub Code</button>
-          <div id="gh-login-status" class="text-xs text-center mt-1 hidden" style="color:var(--yellow)"></div>
+          <div class="text-xs text-muted mb-1">Create a Personal Access Token (classic) with 'repo' scope and enter it here.</div>
+          <input type="password" id="adm-gh-token" class="form-input mb-1" placeholder="ghp_xxxxxx...">
+          <button class="btn btn-primary w-full" onclick="saveGhToken()">Save Token</button>
         </div>
       ` : `
         <div class="text-xs text-center mb-1" style="color:var(--green)">✓ Authenticated with GitHub</div>
@@ -710,7 +704,7 @@ function renderAdmin() {
           <button class="btn btn-ghost flex-1" onclick="pullCloud()">⬇️ Pull Save</button>
         </div>
         <button class="btn btn-ghost w-full mt-1" style="color:var(--red);border-color:var(--red)" onclick="logoutGh()">Log Out</button>
-      `)}
+      `}
     </div>
 
     <div class="card text-center">
@@ -755,64 +749,17 @@ function exeQuickWin() {
   }
 }
 
-function saveGhClientId() {
-  const cId = document.getElementById('adm-gh-client-id').value;
-  if (!cId) return showToast('Enter Client ID', 'err');
-  AppState.setGithubClientId(cId);
-  showToast('Client ID Saved', 'ok');
+function saveGhToken() {
+  const t = document.getElementById('adm-gh-token').value;
+  if (!t) return showToast('Enter GitHub Token', 'err');
+  AppState.setGithubToken(t);
+  showToast('Token Saved', 'ok');
   renderAdmin();
 }
 
 function logoutGh() {
   AppState.logoutGithub();
   showToast('Logged out of GitHub', 'inf');
-  renderAdmin();
-}
-
-let _pollInterval = null;
-
-async function startGithubLogin() {
-  const status = document.getElementById('gh-login-status');
-  const btn = document.getElementById('gh-login-btn');
-  btn.disabled = true; btn.innerHTML = '⏳ Requesting...';
-
-  const data = await AppState.requestDeviceCode();
-  if (data.error) {
-    status.classList.remove('hidden'); status.innerHTML = data.error;
-    btn.disabled = false; btn.innerHTML = '🔑 Login with GitHub Code';
-    return;
-  }
-
-  // Show user code and instructions
-  document.getElementById('gh-auth-box').innerHTML = `
-    <div class="text-sm text-center mb-1">Your code: <strong style="font-size:1.2rem;letter-spacing:2px;color:var(--accent2)">${data.user_code}</strong></div>
-    <div class="text-xs text-muted text-center mb-2">Go to <a href="${data.verification_uri}" target="_blank" style="color:var(--accent);text-decoration:underline">github.com/login/device</a> and enter the code above.</div>
-    <div class="text-xs text-center" id="gh-poll-status" style="color:var(--yellow)">Waiting for authorization... ⏳</div>
-    <button class="btn btn-ghost w-full mt-1" onclick="cancelGhLogin()">Cancel</button>
-  `;
-
-  // Poll for token
-  const intervalSeconds = data.interval || 5;
-  if (_pollInterval) clearInterval(_pollInterval);
-
-  _pollInterval = setInterval(async () => {
-    const res = await AppState.pollAccessToken(data.device_code);
-    if (res.status === 'success') {
-      clearInterval(_pollInterval);
-      showToast('Login Successful!', 'ok');
-      renderAdmin();
-    } else if (res.status === 'authorization_pending' || res.status === 'slow_down') {
-      // Keep waiting
-    } else {
-      // Error
-      clearInterval(_pollInterval);
-      document.getElementById('gh-poll-status').innerHTML = '<span style="color:var(--red)">Error: ' + res.status + '</span>';
-    }
-  }, intervalSeconds * 1000);
-}
-
-function cancelGhLogin() {
-  if (_pollInterval) clearInterval(_pollInterval);
   renderAdmin();
 }
 
