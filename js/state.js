@@ -373,15 +373,9 @@ const AppState = (() => {
         const stateCopy = JSON.parse(JSON.stringify(state));
         delete stateCopy.githubToken;
 
-        // Safe base64 encoding — handles large state without call stack overflow
+        // Encode JSON string safely to base64
         const jsonStr = JSON.stringify(stateCopy, null, 2);
-        const utf8Bytes = new TextEncoder().encode(jsonStr);
-        let binary = '';
-        const chunkSize = 8192;
-        for (let i = 0; i < utf8Bytes.length; i += chunkSize) {
-            binary += String.fromCharCode(...utf8Bytes.subarray(i, i + chunkSize));
-        }
-        const encodedContent = btoa(binary);
+        const encodedContent = btoa(unescape(encodeURIComponent(jsonStr)));
 
         const body = { message: "Auto-save tournament state via web app", content: encodedContent };
         if (sha) body.sha = sha;
