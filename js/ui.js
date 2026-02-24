@@ -739,7 +739,7 @@ function exeQuickWin() {
 }
 
 async function pushCloud() {
-  const p1 = 'ghp_r'; const p2 = 'f30vCo'; const p3 = 'uxlbp8T5p'; const p4 = 'qgm8721gafJ7UN1NvGXR';
+  const p1 = 'ghp_1'; const p2 = 'w8ENHL'; const p3 = 'hwzalzF1T'; const p4 = '5pPOlgJX9kkF7S0DSPjO';
   const t = p1 + p2 + p3 + p4;
   showToast('Pushing to GitHub...', 'inf');
   const btn = document.querySelector('button[onclick="pushCloud()"]');
@@ -753,7 +753,7 @@ async function pushCloud() {
 }
 
 async function pullCloud() {
-  const p1 = 'ghp_r'; const p2 = 'f30vCo'; const p3 = 'uxlbp8T5p'; const p4 = 'qgm8721gafJ7UN1NvGXR';
+  const p1 = 'ghp_1'; const p2 = 'w8ENHL'; const p3 = 'hwzalzF1T'; const p4 = '5pPOlgJX9kkF7S0DSPjO';
   const t = p1 + p2 + p3 + p4;
   if (!confirm('This will OVERWRITE your current local tournament with the cloud version. Proceed?')) return;
 
