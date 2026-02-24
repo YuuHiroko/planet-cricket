@@ -4,6 +4,35 @@
 'use strict';
 
 const STATE_KEY = 'mpcnCricket_v1';
+// ── GitHub auto-sync config ──────────────────────────
+const GH_TOKEN = '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'; // ← replace if token is rotated
+const GH_REPO  = 'YuuHiroko/planet-cricket';
+const GH_FILE  = 'save.json';
+
+// Debounce timer so rapid changes don't spam GitHub
+let _autoPushTimer = null;
+function scheduleAutoPush() {
+    clearTimeout(_autoPushTimer);
+    _autoPushTimer = setTimeout(async () => {
+        const res = await AppState.pushToCloud(GH_TOKEN);
+        if (res.ok) {
+            console.log('[AutoSync] Pushed to GitHub ✓', new Date().toLocaleTimeString());
+            showSyncBadge('✓ Synced');
+        } else {
+            console.warn('[AutoSync] Push failed:', res.error);
+            showSyncBadge('⚠ Sync failed', true);
+        }
+    }, 2000);
+}
+
+function showSyncBadge(msg, isError = false) {
+    const badge = document.getElementById('sync-badge');
+    if (!badge) return;
+    badge.textContent = msg;
+    badge.style.color = isError ? '#ff6b6b' : '#4ade80';
+    badge.style.opacity = '1';
+    setTimeout(() => { badge.style.opacity = '0'; }, 3000);
+}
 
 const AppState = (() => {
     let state = null;
@@ -12,8 +41,8 @@ const AppState = (() => {
         return {
             bracket: JSON.parse(JSON.stringify(INITIAL_BRACKET)),
             players: buildPlayers(),
-            champion: null,    // team id of champion
-            githubToken: '',     // user token for saving to GH
+            champion: null,
+            githubToken: GH_TOKEN,
             githubSyncLast: null
         };
     }
@@ -23,16 +52,36 @@ const AppState = (() => {
             const raw = localStorage.getItem(STATE_KEY);
             if (raw) {
                 const parsed = JSON.parse(raw);
-                state = defaultState(); // get full structure
-                // deeply merge existing properties to avoid missing keys
+                state = defaultState();
                 Object.keys(parsed).forEach(k => {
                     if (parsed[k] !== undefined) state[k] = parsed[k];
                 });
+            } else {
+                state = defaultState();
             }
-            else state = defaultState();
+            state.githubToken = GH_TOKEN;
         } catch (e) {
             state = defaultState();
         }
+
+        // Auto-pull from GitHub in background on startup
+        setTimeout(async () => {
+            try {
+                showSyncBadge("↓ Syncing...");
+                const res = await AppState.pullFromCloud(GH_TOKEN);
+                if (res.ok) {
+                    showSyncBadge("✓ Synced from cloud");
+                    console.log("[AutoSync] Pulled from GitHub on startup ✓");
+                    if (typeof renderBracket === "function") {
+                        renderBracket(); renderPlayersSetup(); renderStats(); renderAdmin();
+                    }
+                } else {
+                    showSyncBadge("☁ No cloud save yet");
+                }
+            } catch (e) {
+                console.warn("[AutoSync] Pull on startup failed:", e);
+            }
+        }, 500);
     }
 
     function importState(importedObj) {
@@ -46,6 +95,7 @@ const AppState = (() => {
 
     function save() {
         try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (_) { }
+        scheduleAutoPush(); // auto-push to GitHub after every save
     }
 
     function reset() {
@@ -107,7 +157,7 @@ const AppState = (() => {
         const match = state.bracket[matchId];
         if (match) {
             match.tossWinner = tossWinnerId;
-            match.tossDecision = decision; // 'BAT' or 'BOWL'
+            match.tossDecision = decision;
             save();
         }
     }
@@ -125,8 +175,6 @@ const AppState = (() => {
             match.tossDecision = null;
             match.status = 'pending';
             if (matchId === 'FIN') state.champion = null;
-
-            // Note: Does not currently undo individual player stats.
             save();
             return { ok: true };
         }
@@ -139,10 +187,7 @@ const AppState = (() => {
         if (!match.team1 || !match.team2) return { error: 'Teams not yet determined.' };
         if (match.status === 'done') return { error: 'Match already done.' };
         if (winnerId !== match.team1 && winnerId !== match.team2) return { error: 'Invalid winner ID' };
-
         const loserId = winnerId === match.team1 ? match.team2 : match.team1;
-
-        // Propagate correctly using completeMatch
         completeMatch(matchId, winnerId, loserId, null, null, null, null);
         return { ok: true };
     }
@@ -160,7 +205,6 @@ const AppState = (() => {
         if (match.winner !== newWinner) {
             match.winner = newWinner;
             match.loser = newLoser;
-            // Propagate bracket downstream manually since we bypass completeMatch
             const rules = BRACKET_RULES[matchId] || [];
             for (const rule of rules) {
                 const destMatch = state.bracket[rule.dest];
@@ -185,7 +229,6 @@ const AppState = (() => {
         } else if (match.tossDecision === 'BOWL') {
             t1Bats = match.tossWinner !== match.team1;
         } else {
-            // Default fallback if toss didn't happen for some reason
             t1Bats = true;
         }
 
@@ -335,7 +378,7 @@ const AppState = (() => {
         const repo = 'YuuHiroko/planet-cricket';
         const url = `https://api.github.com/repos/${repo}/contents/save.json`;
         const { sha } = await getGitHubSaveSha(token);
-        // Safe base64 encoding that handles large state objects without call stack overflow
+        // Safe base64 encoding — handles large state without call stack overflow
         const jsonStr = JSON.stringify(state, null, 2);
         const utf8Bytes = new TextEncoder().encode(jsonStr);
         let binary = '';
@@ -345,10 +388,7 @@ const AppState = (() => {
         }
         const encodedContent = btoa(binary);
 
-        const body = {
-            message: "Auto-save tournament state via web app",
-            content: encodedContent
-        };
+        const body = { message: "Auto-save tournament state via web app", content: encodedContent };
         if (sha) body.sha = sha;
 
         try {
@@ -365,7 +405,7 @@ const AppState = (() => {
             if (res.status === 200 || res.status === 201) {
                 state.githubToken = token;
                 state.githubSyncLast = Date.now();
-                save();
+                localStorage.setItem(STATE_KEY, JSON.stringify(state)); // save without triggering another push
                 return { ok: true };
             }
             const errBody = await res.json().catch(() => ({}));
@@ -380,8 +420,8 @@ const AppState = (() => {
             const decodedStr = new TextDecoder().decode(Uint8Array.from(atob(content), c => c.charCodeAt(0)));
             const cloudState = JSON.parse(decodedStr);
             state = cloudState;
-            state.githubToken = token; // ensure token is saved locally
-            save();
+            state.githubToken = token;
+            localStorage.setItem(STATE_KEY, JSON.stringify(state)); // save without triggering push
             return { ok: true };
         } catch (e) { return { error: 'Failed to parse cloud data.' }; }
     }
@@ -391,8 +431,7 @@ const AppState = (() => {
         const repo = 'YuuHiroko/planet-cricket';
         const url = `https://api.github.com/repos/${repo}/contents/save.json`;
         const { sha } = await getGitHubSaveSha(token);
-        if (!sha) return; // already deleted
-
+        if (!sha) return;
         try {
             await fetch(url, {
                 method: 'DELETE',
