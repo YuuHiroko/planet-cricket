@@ -344,16 +344,12 @@ const AppState = (() => {
     }
 
     /* ── CLOUD SYNC ─────────────────────────────────── */
-    function getDecryptedToken() {
-        const enc = '74-75-7d-6c-78-80-44-64-5c-55-43-60-58-70-71-80-45-5e-64-82-40-6f-7c-40-65-7c-65-62-70-6f-60-77-7d-76-40-5e-7b-82-78-44';
-        return enc.split('-').map(h => String.fromCharCode(parseInt(h, 16) - 13)).join('');
-    }
-
     async function getGitHubSaveSha(token) {
         const repo = 'YuuHiroko/planet-cricket';
         const url = `https://api.github.com/repos/${repo}/contents/save.json?t=${Date.now()}`;
         try {
             const res = await fetch(url, {
+                cache: 'no-store', // explicitly prevent caching
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/vnd.github+json',
@@ -373,8 +369,12 @@ const AppState = (() => {
         const repo = 'YuuHiroko/planet-cricket';
         const url = `https://api.github.com/repos/${repo}/contents/save.json`;
         const { sha } = await getGitHubSaveSha(token);
+        // Copy state and strip token so it isn't pushed to the repo
+        const stateCopy = JSON.parse(JSON.stringify(state));
+        delete stateCopy.githubToken;
+
         // Safe base64 encoding — handles large state without call stack overflow
-        const jsonStr = JSON.stringify(state, null, 2);
+        const jsonStr = JSON.stringify(stateCopy, null, 2);
         const utf8Bytes = new TextEncoder().encode(jsonStr);
         let binary = '';
         const chunkSize = 8192;
@@ -443,7 +443,6 @@ const AppState = (() => {
         quickWin,
         startScorer, getScorerState, applyDelivery, finishInnings,
         setBowler, findPlayer,
-        getDecryptedToken,
         pushToCloud, pullFromCloud, deleteCloudSave
     };
 })();
