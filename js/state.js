@@ -5,7 +5,7 @@
 
 const STATE_KEY = 'mpcnCricket_v1';
 // ── GitHub auto-sync config ──────────────────────────
-const GH_TOKEN = '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'; // ← replace if token is rotated
+const GH_TOKEN = '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'; // ← replace if token is rotated
 const GH_REPO  = 'YuuHiroko/planet-cricket';
 const GH_FILE  = 'save.json';
 
