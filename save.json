@@ -5,15 +5,15 @@
       "label": "Match 1",
       "team1": "A",
       "team2": "B",
-      "tossWinner": null,
-      "tossDecision": null,
-      "winner": "A",
-      "loser": "B",
-      "status": "done",
+      "tossWinner": "A",
+      "tossDecision": "BAT",
+      "winner": null,
+      "loser": null,
+      "status": "live",
       "score1": null,
       "score2": null,
-      "overs1": null,
-      "overs2": null
+      "overs1": 0,
+      "overs2": 0
     },
     "M2": {
       "id": "M2",
@@ -48,7 +48,7 @@
     "E1": {
       "id": "E1",
       "label": "Eliminator 1",
-      "team1": "B",
+      "team1": null,
       "team2": null,
       "tossWinner": null,
       "tossDecision": null,
@@ -78,7 +78,7 @@
     "SF1": {
       "id": "SF1",
       "label": "Semi Final 1",
-      "team1": "A",
+      "team1": null,
       "team2": null,
       "tossWinner": null,
       "tossDecision": null,
@@ -128,10 +128,10 @@
         "teamId": "A",
         "name": "Player 1",
         "role": "BAT",
-        "runs": 0,
-        "balls": 0,
+        "runs": 6,
+        "balls": 1,
         "fours": 0,
-        "sixes": 0,
+        "sixes": 1,
         "isOut": false,
         "dismissal": "",
         "oversBowled": 0,
@@ -494,8 +494,8 @@
         "isOut": false,
         "dismissal": "",
         "oversBowled": 0,
-        "ballsBowled": 0,
-        "runsConceded": 0,
+        "ballsBowled": 1,
+        "runsConceded": 6,
         "wicketsTaken": 0,
         "extras": 0
       }
@@ -1257,7 +1257,30 @@
       }
     ]
   },
-  "scorer": null,
+  "scorer": {
+    "matchId": "M1",
+    "innings": 1,
+    "battingTeam": "A",
+    "fieldingTeam": "B",
+    "runs": 6,
+    "wickets": 0,
+    "overs": 0,
+    "balls": 1,
+    "target": null,
+    "complete": false,
+    "striker": "A_0",
+    "nonStriker": "A_1",
+    "bowler": "B_10",
+    "currentOverDeliveries": [
+      {
+        "type": "6",
+        "runs": 6,
+        "extra": false,
+        "ball": 1
+      }
+    ],
+    "overHistory": []
+  },
   "champion": null,
   "githubToken": "",
   "githubSyncLast": null
