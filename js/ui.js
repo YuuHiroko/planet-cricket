@@ -80,7 +80,7 @@ function renderMatchCard(m) {
       <div class="team-chip ${won ? 'winner-chip' : ''}" style="border:1px solid ${won ? team.color + '44' : 'transparent'}">
         <div class="team-chip-icon" style="background:${team.color}15;color:${team.color};box-shadow:0 0 10px ${team.color}22"><img src="${team.icon}" class="planet-img" alt="${team.name}"></div>
         <div class="team-chip-name">${team.name}</div>
-        ${score !== null ? `<div class="team-chip-score" style="color:${team.color}">${score}<span style="font-size:0.6rem;opacity:0.6">(${overs})</span></div>` : ''}
+        ${(score !== null && score !== undefined) ? `<div class="team-chip-score" style="color:${team.color}">${score}<span style="font-size:0.6rem;opacity:0.6">(${overs})</span></div>` : ''}
       </div>`;
   };
 
