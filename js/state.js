@@ -41,13 +41,8 @@ const AppState = (() => {
         return {
             bracket: JSON.parse(JSON.stringify(INITIAL_BRACKET)),
             players: buildPlayers(),
-<<<<<<< HEAD
-            champion: null,
-            githubToken: GH_TOKEN,
-=======
             champion: null,    // team id of champion
             githubToken: '',     // fallback for legacy
->>>>>>> 80a9e98 (Implement encrypted token sync)
             githubSyncLast: null
         };
     }
