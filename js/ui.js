@@ -32,15 +32,6 @@ function renderCurrentPage(pageId) {
   if (pageId === 'page-admin') renderAdmin();
 }
 
-function initStars() {
-  const bg = document.getElementById('stars-bg');
-  for (let i = 0; i < 80; i++) {
-    const s = document.createElement('div'); s.className = 'star';
-    const sz = Math.random() * 2 + 0.5;
-    s.style.cssText = `left:${Math.random() * 100}%; top:${Math.random() * 100}%; width:${sz}px; height:${sz}px; --op:${Math.random() * 0.5 + 0.1}; --dur:${Math.random() * 4 + 2}s; --delay:${Math.random() * 4}s;`;
-    bg.appendChild(s);
-  }
-}
 
 /* ── 1. BRACKET ─────────────────────────────────────── */
 function renderBracket() {
