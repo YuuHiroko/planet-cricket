@@ -7,7 +7,7 @@ function showToast(msg, type = 'inf') {
   const root = document.getElementById('toast-root');
   const t = document.createElement('div');
   t.className = `toast toast-${type}`;
-  t.textContent = msg;
+  t.innerHTML = msg;
   root.appendChild(t);
   setTimeout(() => t.remove(), 3500);
 }
@@ -51,7 +51,7 @@ function renderBracket() {
     { title: 'Round 1', ids: ['M1', 'M2', 'M3'] },
     { title: 'Eliminators', ids: ['E1', 'E2'] },
     { title: 'Semi Finals', ids: ['SF1', 'SF2'] },
-    { title: '🏆 Final', ids: ['FIN'] },
+    { title: 'Final', ids: ['FIN'] },
   ];
 
   box.innerHTML = groups.map(g => `
@@ -63,6 +63,7 @@ function renderBracket() {
       ${g.ids.map(id => renderMatchCard(bracket[id])).join('')}
     </div>
   `).join('');
+  setTimeout(() => lucide.createIcons(), 0);
 }
 
 function renderMatchCard(m) {
@@ -70,9 +71,9 @@ function renderMatchCard(m) {
   const t1 = TEAMS[m.team1]; const t2 = TEAMS[m.team2];
   let badge = '';
   if (status === 'live') badge = `<span class="badge badge-live"><span class="live-dot"></span>LIVE</span>`;
-  else if (status === 'done') badge = `<span class="badge badge-done">✓ DONE</span>`;
+  else if (status === 'done') badge = `<span class="badge badge-done"><i data-lucide="check" style="width:12px;height:12px"></i> DONE</span>`;
   else if (status === 'pending') badge = `<span class="badge badge-ready">READY</span>`;
-  else badge = `<span class="badge badge-locked">🔒 TBD</span>`;
+  else badge = `<span class="badge badge-locked"><i data-lucide="lock" style="width:12px;height:12px"></i> TBD</span>`;
 
   const chip = (team, score, overs, won) => {
     if (!team) return `<div class="tbd-chip">To Be Decided</div>`;
@@ -128,13 +129,14 @@ function openMatchSheet(matchId) {
         </div>
       </div>
       ${m.tossWinner ?
-        `<button class="btn btn-primary btn-lg w-full mb-1" onclick="prepScorer('${matchId}')">🏏 Start Match / Score</button>` :
-        `<button class="btn btn-primary btn-lg w-full mb-1" onclick="openTossSheet('${matchId}')">🪙 Toss Coin</button>`
+        `<button class="btn btn-primary btn-lg w-full mb-1" onclick="prepScorer('${matchId}')"><i data-lucide="play" style="width:18px;height:18px"></i> Start Match</button>` :
+        `<button class="btn btn-primary btn-lg w-full mb-1" onclick="openTossSheet('${matchId}')"><i data-lucide="coins" style="width:18px;height:18px"></i> Toss Coin</button>`
       }
       <button class="btn btn-ghost w-full" onclick="closeSheet('sheet-match')">Cancel</button>
     `;
   }
   document.getElementById('sheet-match').classList.add('open');
+  setTimeout(() => lucide.createIcons(), 0);
 }
 
 let _activeMatchId = null;
@@ -160,13 +162,14 @@ function openTossSheet(id) {
     <div id="toss-decision" class="hidden">
       <div class="text-sm text-center text-muted mb-1">What did they choose?</div>
       <div class="flex gap-1 mb-2">
-        <button class="btn btn-ghost flex-1" onclick="finalizeToss('BAT')">🏏 BAT</button>
-        <button class="btn btn-ghost flex-1" onclick="finalizeToss('BOWL')">🎳 BOWL</button>
+        <button class="btn btn-ghost flex-1" onclick="finalizeToss('BAT')"><i data-lucide="zap" style="width:16px;height:16px;margin-right:4px"></i> BAT</button>
+        <button class="btn btn-ghost flex-1" onclick="finalizeToss('BOWL')"><i data-lucide="target" style="width:16px;height:16px;margin-right:4px"></i> BOWL</button>
       </div>
     </div>
     <button class="btn btn-ghost w-full" onclick="closeSheet('sheet-toss')">Cancel</button>
   `;
   document.getElementById('sheet-toss').classList.add('open');
+  setTimeout(() => lucide.createIcons(), 0);
 }
 
 let _tossWinner = null;
@@ -178,8 +181,9 @@ function selectTossWinner(tid) {
 function finalizeToss(decision) {
   closeSheet('sheet-toss');
   AppState.setToss(_activeMatchId, _tossWinner, decision);
-  showToast('Toss saved! Ready to start.', 'ok');
+  showToast('<i data-lucide="check-circle" style="width:14px;height:14px;display:inline-block;vertical-align:middle;margin-right:4px"></i> Toss saved! Ready to start.', 'ok');
   openMatchSheet(_activeMatchId); // Reopen match sheet now showing "Start Match"
+  lucide.createIcons();
 }
 
 function prepScorer(id) {
@@ -203,11 +207,12 @@ function renderScorer() {
   if (!sc) {
     box.innerHTML = `
       <div class="text-center" style="padding-top:4rem">
-        <div style="font-size:4rem;margin-bottom:1rem;opacity:0.5">🏏</div>
+        <i data-lucide="pen-tool" style="width:4rem;height:4rem;opacity:0.2;margin:0 auto 1rem;display:block"></i>
         <div class="sec-title">No Active Match</div>
         <div class="text-sm text-muted mb-2">Go to Bracket and select a READY match to start scoring.</div>
         <button class="btn btn-primary" onclick="document.querySelector('[data-page=\\'page-bracket\\']').click()">Go to Bracket</button>
       </div>`;
+    lucide.createIcons();
     return;
   }
 
@@ -231,7 +236,7 @@ function renderScorer() {
 
   const pmc = (p, isStr) => {
     if (!p) return `<div class="player-mini-card"><div class="pmc-label">BATTER</div><div class="text-muted">TBD</div></div>`;
-    const lo = isLookoutBat(p) ? `<span class="lookout-tag">🔥 HOT</span>` : '';
+    const lo = isLookoutBat(p) ? `<span class="lookout-tag"><i data-lucide="flame" style="width:12px;height:12px"></i> HOT</span>` : '';
     return `
       <div class="player-mini-card ${isStr ? 'batting-now' : ''}">
         <div class="pmc-label">BATTER</div>
@@ -283,8 +288,8 @@ function renderScorer() {
 
     <div class="bowler-strip" onclick="openBowlerSheet()" style="cursor:pointer">
       <div class="bowler-info">
-        <div class="bowler-lbl">BOWLER 🔄</div>
-        <div class="bowler-name">${bwl?.name || 'Select Bowler'} ${isLookoutBwl(bwl) ? '<span class="lookout-tag">🔥</span>' : ''}</div>
+        <div class="bowler-lbl">BOWLER <i data-lucide="repeat" style="width:10px;height:10px;display:inline-block"></i></div>
+        <div class="bowler-name">${bwl?.name || 'Select Bowler'} ${isLookoutBwl(bwl) ? '<span class="lookout-tag"><i data-lucide="flame" style="width:12px;height:12px"></i></span>' : ''}</div>
         <div class="bowler-eco">Eco: ${calcEco(bwl)}</div>
       </div>
       <div class="bowler-fig">${bwl ? `${bwl.wicketsTaken}-${bwl.runsConceded}` : ''}</div>
@@ -295,7 +300,7 @@ function renderScorer() {
       <div class="innings-complete-card">
         <h3>INNINGS ${sc.innings} COMPLETE</h3>
         <div class="fw-800 text-sm mb-1">${batT.name}: ${sc.runs}/${sc.wickets} (${sc.overs}.${sc.balls} ov)</div>
-        ${sc.innings === 1 ? `<button class="btn btn-primary w-full" onclick="startInn2fromComplete()">Starts Innings 2</button>` : `<button class="btn btn-green w-full" onclick="finishFullMatch()">Declare Match Result 🏆</button>`}
+        ${sc.innings === 1 ? `<button class="btn btn-primary w-full" onclick="startInn2fromComplete()">Starts Innings 2</button>` : `<button class="btn btn-green w-full" onclick="finishFullMatch()">Declare Match Result <i data-lucide="award" style="width:16px;height:16px;margin-left:4px"></i></button>`}
       </div>
     ` : `
       <div class="scoring-keyboard">
@@ -321,8 +326,8 @@ function renderScorer() {
         </div>
 
         <div class="kb-row-undo-change mt-1">
-          <button class="kb-undo" onclick="showToast('Undo available in Admin panel edit mode.')">↩ UNDO</button>
-          <button class="kb-bowler-change" onclick="openBowlerSheet()">🔄 BOWLER</button>
+          <button class="kb-undo" onclick="showToast('Undo available in Admin panel edit mode.')"><i data-lucide="undo" style="width:14px;height:14px;margin-right:4px;display:inline-block"></i> UNDO</button>
+          <button class="kb-bowler-change" onclick="openBowlerSheet()"><i data-lucide="refresh-cw" style="width:14px;height:14px;margin-right:4px;display:inline-block"></i> BOWLER</button>
         </div>
       </div>
     `}
@@ -347,12 +352,21 @@ function renderScorer() {
       </table>
     </div>
   `;
+  lucide.createIcons();
 }
 
-function handleDeliveryEffects(prevOvers, sc) {
+function handleDeliveryEffects(prevOvers, prevWickets, sc) {
   if (!sc) return;
   renderScorer();
-  if (sc.overs > prevOvers && !sc.complete) {
+
+  if (sc.wickets > prevWickets && !sc.complete) {
+    setTimeout(() => {
+      openNextBatterSheet();
+      if (sc.overs > prevOvers) {
+        document.getElementById('sheet-next-batter').setAttribute('data-over-change', 'true');
+      }
+    }, 200);
+  } else if (sc.overs > prevOvers && !sc.complete) {
     setTimeout(() => {
       openBowlerSheet();
       showToast('Select bowler for next over', 'inf');
@@ -364,8 +378,9 @@ function rB(t) {
   const scState = AppState.getScorerState();
   if (!scState) return;
   const prevOvers = scState.overs;
+  const prevWickets = scState.wickets;
   const sc = AppState.applyDelivery({ type: t });
-  handleDeliveryEffects(prevOvers, sc);
+  handleDeliveryEffects(prevOvers, prevWickets, sc);
 }
 
 function startInn2fromComplete() {
@@ -392,7 +407,7 @@ function finishFullMatch() {
 
   const wt = TEAMS[wId];
   if (AppState.get().champion === wId) {
-    showToast(`🏆 ${wt.name} ARE CHAMPIONS!`, 'ok');
+    showToast(`CHAMPIONS: ${wt.name}!`, 'ok');
     document.getElementById('champ-icon').innerHTML = `<img src="${wt.icon}" class="planet-img" style="width:100px;height:100px;border-radius:50%;margin:0 auto">`;
     document.getElementById('champ-name').textContent = wt.name;
     document.getElementById('champ-name').style.color = wt.color;
@@ -413,17 +428,19 @@ function selWkt(type) {
     const nstr = AppState.findPlayer(sc.battingTeam, sc.nonStriker);
     document.getElementById('sheet-runout-body').innerHTML = `
       <div class="text-sm text-center text-muted mb-2">Who was run out?</div>
-      <button class="player-choice-btn" onclick="execRunOut('${str.id}')">🏏 ${str.name} (Striker)</button>
-      <button class="player-choice-btn" onclick="execRunOut('${nstr.id}')">🏃 ${nstr.name} (Non-striker)</button>
+      <button class="player-choice-btn" onclick="execRunOut('${str.id}')"><i data-lucide="user" style="width:18px;height:18px"></i> ${str.name} (Striker)</button>
+      <button class="player-choice-btn" onclick="execRunOut('${nstr.id}')"><i data-lucide="user" style="width:18px;height:18px"></i> ${nstr.name} (Non-striker)</button>
     `;
     document.getElementById('sheet-runout').classList.add('open');
+    lucide.createIcons();
     return;
   }
   const scState = AppState.getScorerState();
   if (!scState) return;
   const prevOvers = scState.overs;
+  const prevWickets = scState.wickets;
   const sc = AppState.applyDelivery({ type: 'W', wicketType: type });
-  handleDeliveryEffects(prevOvers, sc);
+  handleDeliveryEffects(prevOvers, prevWickets, sc);
 }
 
 function execRunOut(pid) {
@@ -431,11 +448,14 @@ function execRunOut(pid) {
   const scState = AppState.getScorerState();
   if (!scState) return;
   if (scState.nonStriker === pid) {
-    scState.striker = pid; scState.nonStriker = scState.striker; // temp swap
+    const temp = scState.striker;
+    scState.striker = scState.nonStriker;
+    scState.nonStriker = temp; // correct temp swap
   }
   const prevOvers = scState.overs;
+  const prevWickets = scState.wickets;
   const newSc = AppState.applyDelivery({ type: 'W', wicketType: 'Run Out' });
-  handleDeliveryEffects(prevOvers, newSc);
+  handleDeliveryEffects(prevOvers, prevWickets, newSc);
 }
 
 function openBowlerSheet() {
@@ -455,6 +475,50 @@ function selectBowler(pid) {
   closeSheet('sheet-bowler');
   AppState.setBowler(pid);
   renderScorer();
+}
+
+function openNextBatterSheet() {
+  const sc = AppState.getScorerState();
+  if (!sc || sc.complete) return;
+  const batters = AppState.get().players[sc.battingTeam];
+
+  const used = new Set([sc.striker, sc.nonStriker]);
+  if (sc.lastAssignedBatter) used.delete(sc.lastAssignedBatter);
+
+  batters.forEach(b => { if (b.isOut) used.add(b.id); });
+
+  const list = batters.filter(b => !used.has(b.id)).map(p => `
+    <div class="bowler-list-item ${p.id === sc.lastAssignedBatter ? 'active' : ''}" onclick="selectNextBatter('${p.id}')">
+      <div class="bli-name">${p.name} <span class="text-xs text-muted fw-700 ml-1">(${p.role})</span></div>
+    </div>
+  `).join('');
+
+  if (!list) {
+    checkQueuedBowlerSheet();
+    return;
+  }
+
+  document.getElementById('sheet-next-batter-body').innerHTML = `<div class="mb-2" style="max-height:60vh;overflow-y:auto">${list}</div><button class="btn btn-ghost w-full" onclick="closeSheet('sheet-next-batter'); checkQueuedBowlerSheet();">Auto (Keep Default)</button>`;
+  document.getElementById('sheet-next-batter').classList.add('open');
+  setTimeout(() => lucide.createIcons(), 0);
+}
+
+function selectNextBatter(pid) {
+  closeSheet('sheet-next-batter');
+  AppState.setNextBatter(pid);
+  renderScorer();
+  checkQueuedBowlerSheet();
+}
+
+function checkQueuedBowlerSheet() {
+  const sheet = document.getElementById('sheet-next-batter');
+  if (sheet.getAttribute('data-over-change') === 'true') {
+    sheet.removeAttribute('data-over-change');
+    setTimeout(() => {
+      openBowlerSheet();
+      showToast('Select bowler for next over', 'inf');
+    }, 450);
+  }
 }
 
 /* ── 3. PLAYERS SETUP ───────────────────────────────── */
@@ -491,6 +555,7 @@ function renderPlayersSetup() {
       </div>
     `;
   }).join('');
+  setTimeout(() => lucide.createIcons(), 0);
 }
 
 function toggleSetup(tid) {
@@ -529,7 +594,7 @@ function renderStats() {
   box.innerHTML = `
     <div class="stats-container">
       <div class="stats-card">
-        <div class="stats-card-header">🏏 MOST RUNS</div>
+        <div class="stats-card-header"><i data-lucide="activity" style="width:16px;height:16px;margin-right:4px"></i> MOST RUNS</div>
         <table class="stats-table">
           <thead><tr><th>Batter</th><th>R</th><th>B</th><th>SR</th></tr></thead>
           <tbody>
@@ -556,7 +621,7 @@ function renderStats() {
       </div>
 
       <div class="stats-card">
-        <div class="stats-card-header">🎳 MOST WICKETS</div>
+        <div class="stats-card-header"><i data-lucide="target" style="width:16px;height:16px;margin-right:4px"></i> MOST WICKETS</div>
         <table class="stats-table">
           <thead><tr><th>Bowler</th><th>W</th><th>Eco</th><th>Ovs</th></tr></thead>
           <tbody>
@@ -630,7 +695,7 @@ function renderAdmin() {
       <div class="card text-center" style="margin-top:2rem;padding:2rem 1rem">
         <div class="text-sm fw-800 mb-2">ADMIN PIN REQUIRED</div>
         <input type="password" id="admin-pin" class="form-input text-center mb-1" placeholder="Enter PIN" style="font-size:1.5rem;letter-spacing:0.5rem">
-        <button class="btn btn-primary w-full btn-lg" onclick="unlockAdmin()">Unlock 🔓</button>
+        <button class="btn btn-primary w-full btn-lg" onclick="unlockAdmin()"><i data-lucide="unlock" style="width:18px;height:18px;margin-right:6px"></i> Unlock</button>
       </div>
     `;
     return;
@@ -682,7 +747,7 @@ function renderAdmin() {
           <label class="form-label">Select Winner</label>
           <select class="form-input" id="adm-qw-winner"></select>
         </div>
-        <button class="btn btn-primary w-full mt-1 mb-1" onclick="exeQuickWin()">👑 Declare Winner</button>
+        <button class="btn btn-primary w-full mt-1 mb-1" onclick="exeQuickWin()"><i data-lucide="crown" style="width:16px;height:16px;margin-right:6px"></i> Declare Winner</button>
       </div>
     </div>
 
@@ -699,15 +764,15 @@ function renderAdmin() {
       ` : (!AppState.get().githubToken ? `
         <div id="gh-auth-box">
           <div class="text-xs text-muted text-center mb-1">Client ID configured. Ready to authenticate.</div>
-          <button class="btn btn-primary w-full" id="gh-login-btn" onclick="startGithubLogin()">🔑 Login with GitHub Code</button>
+          <button class="btn btn-primary w-full" id="gh-login-btn" onclick="startGithubLogin()"><i data-lucide="key" style="width:16px;height:16px;margin-right:6px"></i> Login with GitHub Code</button>
           <div id="gh-login-status" class="text-xs text-center mt-1 hidden" style="color:var(--yellow)"></div>
         </div>
       ` : `
         <div class="text-xs text-center mb-1" style="color:var(--green)">✓ Authenticated with GitHub</div>
         ${githubSyncLast ? `<div class="text-xs text-muted text-center mb-1">Last synced: ${new Date(githubSyncLast).toLocaleString()}</div>` : ''}
         <div class="flex gap-1 mt-1">
-          <button class="btn btn-primary flex-1" onclick="pushCloud()">☁️ Push Save</button>
-          <button class="btn btn-ghost flex-1" onclick="pullCloud()">⬇️ Pull Save</button>
+          <button class="btn btn-primary flex-1" onclick="pushCloud()"><i data-lucide="cloud-upload" style="width:16px;height:16px;margin-right:4px"></i> Push Save</button>
+          <button class="btn btn-ghost flex-1" onclick="pullCloud()"><i data-lucide="cloud-download" style="width:16px;height:16px;margin-right:4px"></i> Pull Save</button>
         </div>
         <button class="btn btn-ghost w-full mt-1" style="color:var(--red);border-color:var(--red)" onclick="logoutGh()">Log Out</button>
       `)}
@@ -716,15 +781,16 @@ function renderAdmin() {
     <div class="card text-center">
       <div class="text-sm fw-800 mb-2">TOURNAMENT CONTROLS</div>
       <div class="flex gap-1 mb-1">
-        <button class="btn btn-ghost flex-1" onclick="exp()">💾 Export Backup</button>
+        <button class="btn btn-ghost flex-1" onclick="exp()"><i data-lucide="save" style="width:16px;height:16px;margin-right:4px"></i> Export Backup</button>
         <label class="btn btn-ghost flex-1" style="cursor:pointer;display:flex;align-items:center;justify-content:center">
           <input type="file" accept=".json" style="display:none" onchange="impJson(this)">
-          📥 Import JSON
+          <i data-lucide="download" style="width:16px;height:16px;margin-right:4px"></i> Import JSON
         </label>
       </div>
-      <button class="btn btn-red w-full" onclick="hr()">💣 HARDWARE RESET (Deletes Local & Cloud Save)</button>
+      <button class="btn btn-red w-full" onclick="hr()"><i data-lucide="alert-triangle" style="width:16px;height:16px;margin-right:6px"></i> HARDWARE RESET (Deletes Local & Cloud Save)</button>
     </div>
   `;
+  setTimeout(() => lucide.createIcons(), 0);
 }
 
 function loadQwForm() {
@@ -779,7 +845,8 @@ async function startGithubLogin() {
   const data = await AppState.requestDeviceCode();
   if (data.error) {
     status.classList.remove('hidden'); status.innerHTML = data.error;
-    btn.disabled = false; btn.innerHTML = '🔑 Login with GitHub Code';
+    btn.disabled = false; btn.innerHTML = '<i data-lucide="key" style="width:16px;height:16px;margin-right:6px"></i> Login with GitHub Code';
+    lucide.createIcons();
     return;
   }
 

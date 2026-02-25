@@ -10,11 +10,11 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>MPCN Cricket Tournament</title>
   <link rel="stylesheet" href="css/style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 
 <body>
 
-  <div id="stars-bg"></div>
   <canvas id="confetti-canvas"></canvas>
   <div id="toast-root"></div>
 
@@ -23,7 +23,9 @@
     <div class="topbar-logo">MPCN CRICKET</div>
     <div class="topbar-right">
       <div class="topbar-badge">LIVE</div>
-      <div id="sync-badge" style="font-size:0.65rem;color:#4ade80;opacity:0;transition:opacity 0.5s;margin-left:0.5rem;font-family:monospace;white-space:nowrap;">✓ Synced</div>
+      <div id="sync-badge"
+        style="font-size:0.65rem;color:#4ade80;opacity:0;transition:opacity 0.5s;margin-left:0.5rem;font-family:monospace;white-space:nowrap;">
+        ✓ Synced</div>
     </div>
   </header>
 
@@ -58,19 +60,19 @@
   <!-- BOTTOM NAVIGATION -->
   <nav id="bottom-tabs">
     <button class="tab-btn active" data-page="page-bracket">
-      <div class="tab-icon">🏆</div><span>Matches</span>
+      <div class="tab-icon"><i data-lucide="trophy"></i></div><span>Matches</span>
     </button>
     <button class="tab-btn" data-page="page-scorer">
-      <div class="tab-icon">🏏</div><span>Scorer</span>
+      <div class="tab-icon"><i data-lucide="pen-tool"></i></div><span>Scorer</span>
     </button>
     <button class="tab-btn" data-page="page-players">
-      <div class="tab-icon">👥</div><span>Players</span>
+      <div class="tab-icon"><i data-lucide="users"></i></div><span>Players</span>
     </button>
     <button class="tab-btn" data-page="page-stats">
-      <div class="tab-icon">📊</div><span>Stats</span>
+      <div class="tab-icon"><i data-lucide="bar-chart-2"></i></div><span>Stats</span>
     </button>
     <button class="tab-btn" data-page="page-admin">
-      <div class="tab-icon">⚙️</div><span>Admin</span>
+      <div class="tab-icon"><i data-lucide="settings"></i></div><span>Admin</span>
     </button>
   </nav>
 
@@ -96,12 +98,12 @@
       <div class="sheet-handle"></div>
       <div class="sheet-title text-center">How was the batter out?</div>
       <div class="wicket-grid mb-2">
-        <button class="wicket-btn" onclick="selWkt('Bowled')">🎳 Bowled</button>
-        <button class="wicket-btn" onclick="selWkt('Caught')">🤲 Caught</button>
-        <button class="wicket-btn" onclick="selWkt('LBW')">🦵 LBW</button>
-        <button class="wicket-btn" onclick="selWkt('Run Out')">🏃 Run Out</button>
-        <button class="wicket-btn" onclick="selWkt('Stumped')">🧤 Stumped</button>
-        <button class="wicket-btn" onclick="selWkt('Hit Wicket')">💥 Hit Wicket</button>
+        <button class="wicket-btn" onclick="selWkt('Bowled')"><i data-lucide="target"></i> Bowled</button>
+        <button class="wicket-btn" onclick="selWkt('Caught')"><i data-lucide="hand"></i> Caught</button>
+        <button class="wicket-btn" onclick="selWkt('LBW')"><i data-lucide="shield"></i> LBW</button>
+        <button class="wicket-btn" onclick="selWkt('Run Out')"><i data-lucide="footprints"></i> Run Out</button>
+        <button class="wicket-btn" onclick="selWkt('Stumped')"><i data-lucide="activity"></i> Stumped</button>
+        <button class="wicket-btn" onclick="selWkt('Hit Wicket')"><i data-lucide="zap"></i> Hit Wicket</button>
       </div>
       <button class="btn btn-ghost w-full" onclick="closeSheet('sheet-wicket')">Cancel</button>
     </div>
@@ -113,6 +115,14 @@
       <div class="sheet-title text-center">Run Out</div>
       <div id="sheet-runout-body"></div>
       <button class="btn btn-ghost w-full" onclick="closeSheet('sheet-runout')">Cancel</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="sheet-next-batter">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title text-center">Select Next Batter</div>
+      <div id="sheet-next-batter-body"></div>
     </div>
   </div>
 
@@ -129,7 +139,8 @@
       <div id="champ-icon" style="font-size:4rem;margin-bottom:0.5rem"></div>
       <div class="fw-900 text-sm text-muted mb-1" style="font-family:'Orbitron',monospace">TOURNAMENT WINNER</div>
       <div id="champ-name" style="font-size:1.5rem;font-weight:900;margin-bottom:1.5rem"></div>
-      <button class="btn btn-primary w-full btn-lg" onclick="closeSheet('modal-champ')">Celebrate 🎉</button>
+      <button class="btn btn-primary w-full btn-lg" onclick="closeSheet('modal-champ')"><i data-lucide="award"></i>
+        Celebrate</button>
     </div>
   </div>
 
@@ -145,6 +156,7 @@
       document.querySelectorAll('.overlay').forEach(el => {
         el.addEventListener('click', e => { if (e.target === el) closeSheet(el.id); });
       });
+      lucide.createIcons();
     });
   </script>
 </body>

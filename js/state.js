@@ -247,6 +247,7 @@ const AppState = (() => {
             complete: false,
             striker: battingPlayers[0].id,
             nonStriker: battingPlayers[1].id,
+            lastAssignedBatter: null,
             bowler: state.players[fieldingTeam][10].id,
             currentOverDeliveries: [],
             overHistory: [],
@@ -302,6 +303,7 @@ const AppState = (() => {
             if (batter) { batter.isOut = true; batter.dismissal = delivery.wicketType || 'Out'; }
             if (bowler && delivery.wicketType !== 'Run Out') bowler.wicketsTaken++;
             sc.striker = findNextBatter(sc);
+            sc.lastAssignedBatter = sc.striker;
         } else {
             if (isLegal && [1, 3, 5].includes(runs)) swapStrike(sc);
         }
@@ -342,6 +344,14 @@ const AppState = (() => {
 
     function setBowler(playerId) {
         if (state.scorer) { state.scorer.bowler = playerId; save(); }
+    }
+
+    function setNextBatter(playerId) {
+        if (!state.scorer || !state.scorer.lastAssignedBatter) return;
+        if (state.scorer.striker === state.scorer.lastAssignedBatter) state.scorer.striker = playerId;
+        else if (state.scorer.nonStriker === state.scorer.lastAssignedBatter) state.scorer.nonStriker = playerId;
+        state.scorer.lastAssignedBatter = playerId;
+        save();
     }
 
     /* ── CLOUD SYNC & GITHUB LOGIN ─────────────────────────────────── */
@@ -497,7 +507,7 @@ const AppState = (() => {
         load, importState, save, get, reset, hardReset, updatePlayer, completeMatch, adminEditMatch, resetMatch, setToss,
         quickWin,
         startScorer, getScorerState, applyDelivery, finishInnings,
-        setBowler, findPlayer,
+        setBowler, setNextBatter, findPlayer,
         setGithubClientId, logoutGithub, requestDeviceCode, pollAccessToken,
         pushToCloud, pullFromCloud, deleteCloudSave
     };
