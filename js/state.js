@@ -420,12 +420,10 @@ const AppState = (() => {
         const url = `https://api.github.com/repos/${repo}/contents/save.json?t=${Date.now()}`;
         try {
             const res = await fetch(url, {
-                cache: 'no-store', // explicitly prevent caching
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/vnd.github+json',
-                    'X-GitHub-Api-Version': '2022-11-28',
-                    'Cache-Control': 'no-cache'
+                    'X-GitHub-Api-Version': '2022-11-28'
                 }
             });
             if (res.status === 200) {
